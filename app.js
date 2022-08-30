@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const mongoose = require('mongoose');
 const ejsMate = require('ejs-mate');
+const Joi = require('joi');
 const catchAsync = require('./utils/catchAsync');
 const ExpressError = require('./utils/ExpressError');
 //package to let us "fake" a post request as a put instead
@@ -57,7 +58,26 @@ app.get('/campgrounds/new', (req, res) => {
 app.post(
 	'/campgrounds',
 	catchAsync(async (req, res, next) => {
-		if (req.body.campground) throw new ExpressError('Invalid Campground Data', 400);
+		// if (req.body.campground) throw new ExpressError('Invalid Campground Data', 400);
+		const joiCampgroundSchema = Joi.object({
+			campground : Joi.object({
+				title       : Joi.string().required().min(5).max(50).pattern(new RegExp('^[^\\W_]+[\\s\\w\\\\/]*$')),
+
+				image       : Joi.string().required(),
+
+				price       : Joi.number().required().min(0).max(10000),
+
+				description : Joi.string()
+					.required()
+					.pattern(new RegExp('^[\\s\\w!@#$%^&*(),.?\'"{}\\[\\];:\\\\/<>|+-=`~]*$'))
+					.min(30)
+					.max(300),
+
+				location    : Joi.string().required().min(5).max(50).pattern(new RegExp('^[^\\W_]+[\\s\\w\\\\/]*$'))
+			}).required()
+		});
+		const result = joiCampgroundSchema.validate(req.body);
+		console.log(result);
 		const campground = new Campground(req.body.campground);
 		await campground.save();
 		res.redirect(`/campgrounds/${campground._id}`);
@@ -103,8 +123,9 @@ app.all('*', (req, res, next) => {
 });
 
 app.use((err, req, res, next) => {
-	const { statusCode = 500, message = 'Something went wrong :(' } = err;
-	res.status(statusCode).send(message);
+	const { statusCode = 500 } = err;
+	if (!err.message) err.message = 'Zoinks! Like Something Bad Happened!';
+	res.status(statusCode).render('error', { err });
 });
 
 app.listen(3000, () => {
