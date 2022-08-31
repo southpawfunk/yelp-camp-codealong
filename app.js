@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const mongoose = require('mongoose');
 const ejsMate = require('ejs-mate');
-const Joi = require('joi');
+const { joiCampgroundSchema } = require('./joiSchemas');
 const catchAsync = require('./utils/catchAsync');
 const ExpressError = require('./utils/ExpressError');
 //package to let us "fake" a post request as a put instead
@@ -35,6 +35,16 @@ app.use(express.urlencoded({ extended: true }));
 //the name passed is the name needed in the query string to set as different request
 app.use(methodOverride('_method'));
 
+const validateCampground = (req, res, next) => {
+	const { error } = joiCampgroundSchema.validate(req.body);
+	if (error) {
+		const msg = error.details.map((el) => el.message).join(',');
+		throw new ExpressError(msg, 400);
+	} else {
+		next();
+	}
+};
+
 app.get('/', (req, res) => {
 	res.render('home');
 });
@@ -57,27 +67,9 @@ app.get('/campgrounds/new', (req, res) => {
 
 app.post(
 	'/campgrounds',
+	validateCampground,
 	catchAsync(async (req, res, next) => {
-		// if (req.body.campground) throw new ExpressError('Invalid Campground Data', 400);
-		const joiCampgroundSchema = Joi.object({
-			campground : Joi.object({
-				title       : Joi.string().required().min(5).max(50).pattern(new RegExp('^[^\\W_]+[\\s\\w\\\\/]*$')),
-
-				image       : Joi.string().required(),
-
-				price       : Joi.number().required().min(0).max(10000),
-
-				description : Joi.string()
-					.required()
-					.pattern(new RegExp('^[\\s\\w!@#$%^&*(),.?\'"{}\\[\\];:\\\\/<>|+-=`~]*$'))
-					.min(30)
-					.max(300),
-
-				location    : Joi.string().required().min(5).max(50).pattern(new RegExp('^[^\\W_]+[\\s\\w\\\\/]*$'))
-			}).required()
-		});
-		const result = joiCampgroundSchema.validate(req.body);
-		console.log(result);
+		// if (!req.body.campground) throw new ExpressError('Invalid Campground Data', 400);
 		const campground = new Campground(req.body.campground);
 		await campground.save();
 		res.redirect(`/campgrounds/${campground._id}`);
@@ -102,6 +94,7 @@ app.get(
 
 app.put(
 	'/campgrounds/:id',
+	validateCampground,
 	catchAsync(async (req, res) => {
 		const { id } = req.params;
 		const campground = await Campground.findByIdAndUpdate(id, { ...req.body.campground });
