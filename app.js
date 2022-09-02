@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const mongoose = require('mongoose');
 const ejsMate = require('ejs-mate');
-const { joiCampgroundSchema } = require('./joiSchemas');
+const { joiCampgroundSchema, joiReviewSchema } = require('./joiSchemas');
 const catchAsync = require('./utils/catchAsync');
 const ExpressError = require('./utils/ExpressError');
 //package to let us "fake" a post request as a put instead
@@ -46,6 +46,16 @@ const validateCampground = (req, res, next) => {
 	}
 };
 
+const validateReview = (req, res, next) => {
+	const { error } = joiReviewSchema.validate(req.body);
+	if (error) {
+		const msg = error.details.map((el) => el.message).join(',');
+		throw new ExpressError(msg, 400);
+	} else {
+		next();
+	}
+};
+
 app.get('/', (req, res) => {
 	res.render('home');
 });
@@ -80,7 +90,7 @@ app.post(
 app.get(
 	'/campgrounds/:id',
 	catchAsync(async (req, res) => {
-		const campground = await Campground.findById(req.params.id);
+		const campground = await Campground.findById(req.params.id).populate('reviews');
 		res.render('campgrounds/show', { campground });
 	})
 );
@@ -114,6 +124,7 @@ app.delete(
 
 app.post(
 	'/campgrounds/:id/reviews',
+	validateReview,
 	catchAsync(async (req, res) => {
 		const campground = await Campground.findById(req.params.id);
 		const review = new Review(req.body.review);
@@ -121,6 +132,16 @@ app.post(
 		await review.save();
 		await campground.save();
 		res.redirect(`/campgrounds/${campground._id}`);
+	})
+);
+
+app.delete(
+	'/campgrounds/:id/reviews/:reviewId',
+	catchAsync(async (req, res) => {
+		const { id, reviewId } = req.params;
+		await Campground.findByIdAndUpdate(id, { $pull: { reviews: reviewId } });
+		await Review.findByIdAndDelete(reviewId);
+		res.redirect(`/campgrounds/${id}`);
 	})
 );
 

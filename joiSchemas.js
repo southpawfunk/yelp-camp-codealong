@@ -17,3 +17,14 @@ module.exports.joiCampgroundSchema = Joi.object({
 		location    : Joi.string().required().min(5).max(50).pattern(new RegExp("^[^\\W_]+[\\s\\w,'\\\\/]*$"))
 	}).required()
 });
+
+module.exports.joiReviewSchema = Joi.object({
+	review : Joi.object({
+		rating : Joi.number().required().integer().min(1).max(5),
+		body   : Joi.string()
+			.required()
+			.pattern(new RegExp('^[\\s\\w!@#$%^&*(),.?\'"{}\\[\\];:\\\\/<>|+-=`~]*$'))
+			.min(15)
+			.max(500)
+	}).required()
+});
