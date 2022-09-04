@@ -11,7 +11,7 @@ module.exports.joiCampgroundSchema = Joi.object({
 		description : Joi.string()
 			.required()
 			.pattern(new RegExp('^[\\s\\w!@#$%^&*(),.?\'"{}\\[\\];:\\\\/<>|+-=`~]*$'))
-			.min(30)
+			.min(10)
 			.max(300),
 
 		location    : Joi.string().required().min(5).max(50).pattern(new RegExp("^[^\\W_]+[\\s\\w,'\\\\/]*$"))
@@ -24,7 +24,7 @@ module.exports.joiReviewSchema = Joi.object({
 		body   : Joi.string()
 			.required()
 			.pattern(new RegExp('^[\\s\\w!@#$%^&*(),.?\'"{}\\[\\];:\\\\/<>|+-=`~]*$'))
-			.min(15)
+			.min(10)
 			.max(500)
 	}).required()
 });
