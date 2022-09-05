@@ -7,9 +7,13 @@ const flash = require('connect-flash');
 const ExpressError = require('./utils/ExpressError');
 //package to let us "fake" a post request as a put instead
 const methodOverride = require('method-override');
+const passport = require('passport');
+const LocalStrategy = require('passport-local');
+const User = require('./models/user');
 
-const campgrounds = require('./routes/campgrounds');
-const reviews = require('./routes/reviews');
+const userRoutes = require('./routes/users');
+const campgroundRoutes = require('./routes/campgrounds');
+const reviewRoutes = require('./routes/reviews');
 
 mongoose.connect(
 	'mongodb://localhost:27017/yelp-camp',
@@ -52,14 +56,26 @@ const sessionConfig = {
 app.use(session(sessionConfig));
 app.use(flash());
 
+app.use(passport.initialize());
+//app.use(session()) must come before passport.session()
+app.use(passport.session());
+passport.use(new LocalStrategy(User.authenticate()));
+
+//tells passport how to serialize a user which means
+//how do we store a user in a session basically
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
+
 app.use((req, res, next) => {
+	res.locals.currentUser = req.user;
 	res.locals.success = req.flash('success');
 	res.locals.error = req.flash('error');
 	next();
 });
 
-app.use('/campgrounds/:id/reviews/', reviews);
-app.use('/campgrounds', campgrounds);
+app.use('/', userRoutes);
+app.use('/campgrounds/:id/reviews/', reviewRoutes);
+app.use('/campgrounds', campgroundRoutes);
 
 app.get('/', (req, res) => {
 	res.render('home');
