@@ -4,29 +4,20 @@ const express = require('express');
 // to have access to :id in this instance, but already had access to
 //:reviewId because it is defined in this router/path
 const router = express.Router({ mergeParams: true });
-const catchAsync = require('../utils/catchAsync');
-const { joiReviewSchema } = require('../joiSchemas');
-const ExpressError = require('../utils/ExpressError');
+const { isLoggedIn, isReviewAuthor, validateReview } = require('../middleware');
 const Campground = require('../models/campground');
 const Review = require('../models/review');
-
-const validateReview = (req, res, next) => {
-	const { error } = joiReviewSchema.validate(req.body);
-	if (error) {
-		const msg = error.details.map((el) => el.message).join(',');
-		throw new ExpressError(msg, 400);
-	} else {
-		next();
-	}
-};
+const catchAsync = require('../utils/catchAsync');
 
 //CREATE NEW REVIEW
 router.post(
 	'/',
+	isLoggedIn,
 	validateReview,
 	catchAsync(async (req, res) => {
 		const campground = await Campground.findById(req.params.id);
 		const review = new Review(req.body.review);
+		review.author = req.user._id;
 		campground.reviews.push(review);
 		await review.save();
 		await campground.save();
@@ -38,6 +29,8 @@ router.post(
 //DELETE MATCHING REVIEW
 router.delete(
 	'/:reviewId',
+	isLoggedIn,
+	isReviewAuthor,
 	catchAsync(async (req, res) => {
 		const { id, reviewId } = req.params;
 		await Campground.findByIdAndUpdate(id, { $pull: { reviews: reviewId } });
