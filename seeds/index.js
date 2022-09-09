@@ -1,9 +1,7 @@
-const express = require('express');
-const path = require('path');
+require('dotenv').config();
 const mongoose = require('mongoose');
 const axios = require('axios');
 const cities = require('./cities');
-const apiKeys = require('../API_Keys');
 const { places, descriptors, adjectives, anecdotes, pastimes } = require('./seedHelpers');
 const Campground = require('../models/campground');
 
@@ -24,17 +22,21 @@ db.once('open', () => {
 });
 
 const sample = (array) => array[Math.floor(Math.random() * array.length)];
+const sampleAndPop = (array) => array.pop(Math.floor(Math.random() * array.length));
 
 async function seedImgs() {
 	try {
 		const res = await axios.get('https://api.unsplash.com/photos/random', {
 			params : {
-				client_id   : apiKeys.unsplashKey,
-				collections : 'PHh1QTPf2ts',
+				client_id   : process.env.UNSPLASH_KEY,
+				collections : process.env.UNSPLASH_COLLECTION,
 				count       : 30 //max count allowed by unsplash API
 			}
 		});
-		return res.data.map((a) => a.urls.small);
+		return res.data.map(({ id, urls }) => ({
+			filename : id,
+			url      : urls.small
+		}));
 	} catch (err) {
 		console.error(err);
 	}
@@ -42,13 +44,23 @@ async function seedImgs() {
 
 const seedDB = async () => {
 	await Campground.deleteMany({});
-	const imgs = await seedImgs();
+	let imgSamples = await seedImgs();
+	imgSamples = imgSamples.concat(await seedImgs());
+	imgSamples = imgSamples.concat(await seedImgs());
+	imgSamples = imgSamples.concat(await seedImgs());
+	imgSamples = imgSamples.concat(await seedImgs());
+
 	for (let i = 0; i < 50; i++) {
 		const price = Math.ceil(Math.random() * 6) * 10 - 0.01;
 		const random1000 = Math.floor(Math.random() * 1000);
+		const randomImgCount = Math.ceil(Math.random() * 4);
+		let images = [];
+		for (let i = 0; i < randomImgCount; i++) {
+			images.push(sampleAndPop(imgSamples));
+		}
 		const camp = new Campground({
 			author      : '631543c9b2a78cef65e4cae1',
-			image       : sample(imgs),
+			images,
 			location    : `${cities[random1000].city}, ${cities[random1000].state}`,
 			title       : `${sample(descriptors)} ${sample(places)}`,
 			price,
@@ -60,6 +72,7 @@ const seedDB = async () => {
 		});
 		await camp.save();
 	}
+	console.log(`Used ${150 - imgSamples.length} images sampled randomly from unsplash collection.`);
 };
 
 seedDB().then(() => {

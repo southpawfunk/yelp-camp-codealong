@@ -4,7 +4,7 @@ module.exports.joiCampgroundSchema = Joi.object({
 	campground : Joi.object({
 		title       : Joi.string().required().min(5).max(50).pattern(new RegExp("^[^\\W_]+[\\s\\w'\\\\/]*$")),
 
-		image       : Joi.string().required(),
+		//image       : Joi.string().required(),
 
 		price       : Joi.number().required().min(0).max(10000),
 
