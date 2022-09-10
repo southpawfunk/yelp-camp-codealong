@@ -1,7 +1,7 @@
 const Joi = require('joi');
 
 module.exports.joiCampgroundSchema = Joi.object({
-	campground : Joi.object({
+	campground   : Joi.object({
 		title       : Joi.string().required().min(5).max(50).pattern(new RegExp("^[^\\W_]+[\\s\\w'\\\\/]*$")),
 
 		//image       : Joi.string().required(),
@@ -15,7 +15,8 @@ module.exports.joiCampgroundSchema = Joi.object({
 			.max(300),
 
 		location    : Joi.string().required().min(5).max(50).pattern(new RegExp("^[^\\W_]+[\\s\\w,'\\\\/]*$"))
-	}).required()
+	}).required(),
+	deleteImages : Joi.array()
 });
 
 module.exports.joiReviewSchema = Joi.object({

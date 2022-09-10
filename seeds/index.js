@@ -9,9 +9,9 @@ mongoose.connect(
 	'mongodb://localhost:27017/yelp-camp',
 	{
 		/* THESE OPTIONS ARE TRUE BY DEFAULT IN MONGOOSE 6+
-    useNewUrlParser: true,
-    useCreateIndex: true,
-    useUnifiedTopology: true */
+	useNewUrlParser: true,
+	useCreateIndex: true,
+	useUnifiedTopology: true */
 	}
 );
 
@@ -27,15 +27,15 @@ const sampleAndPop = (array) => array.pop(Math.floor(Math.random() * array.lengt
 async function seedImgs() {
 	try {
 		const res = await axios.get('https://api.unsplash.com/photos/random', {
-			params : {
-				client_id   : process.env.UNSPLASH_KEY,
-				collections : process.env.UNSPLASH_COLLECTION,
-				count       : 30 //max count allowed by unsplash API
+			params: {
+				client_id: process.env.UNSPLASH_KEY,
+				topics: 'outdoors,camping,nature',
+				count: 30 //max count allowed by unsplash API
 			}
 		});
 		return res.data.map(({ id, urls }) => ({
-			filename : id,
-			url      : urls.small
+			filename: `SEEDED-IMG${id}`,
+			url: urls.small
 		}));
 	} catch (err) {
 		console.error(err);
@@ -45,12 +45,11 @@ async function seedImgs() {
 const seedDB = async () => {
 	await Campground.deleteMany({});
 	let imgSamples = await seedImgs();
-	imgSamples = imgSamples.concat(await seedImgs());
-	imgSamples = imgSamples.concat(await seedImgs());
-	imgSamples = imgSamples.concat(await seedImgs());
-	imgSamples = imgSamples.concat(await seedImgs());
+	for (let i = 0; i < 39; i++) {
+		imgSamples = imgSamples.concat(await seedImgs());
+	}
 
-	for (let i = 0; i < 50; i++) {
+	for (let i = 0; i < 400; i++) {
 		const price = Math.ceil(Math.random() * 6) * 10 - 0.01;
 		const random1000 = Math.floor(Math.random() * 1000);
 		const randomImgCount = Math.ceil(Math.random() * 4);
@@ -59,12 +58,16 @@ const seedDB = async () => {
 			images.push(sampleAndPop(imgSamples));
 		}
 		const camp = new Campground({
-			author      : '631543c9b2a78cef65e4cae1',
+			author: '631543c9b2a78cef65e4cae1',
 			images,
-			location    : `${cities[random1000].city}, ${cities[random1000].state}`,
-			title       : `${sample(descriptors)} ${sample(places)}`,
+			location: `${cities[random1000].city}, ${cities[random1000].state}`,
+			geometry: {
+				type: 'Point',
+				coordinates: [cities[random1000].longitude, cities[random1000].latitude]
+			},
+			title: `${sample(descriptors)} ${sample(places)}`,
 			price,
-			description :
+			description:
 				`This campground is a ${sample(adjectives)} little place. ` +
 				`My family stayed there for ${Math.ceil(Math.random() * 7) + 1} nights. ` +
 				`It made me think of when ${sample(anecdotes)}. I would really like to go back ` +
@@ -72,7 +75,7 @@ const seedDB = async () => {
 		});
 		await camp.save();
 	}
-	console.log(`Used ${150 - imgSamples.length} images sampled randomly from unsplash collection.`);
+	console.log(`Used ${1200 - imgSamples.length} images sampled randomly from unsplash matching outdoors, camping, and nature.`);
 };
 
 seedDB().then(() => {
