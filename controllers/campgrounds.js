@@ -27,9 +27,9 @@ module.exports.createCampground = async (req, res, next) => {
 module.exports.showCampground = async (req, res) => {
 	const campground = await Campground.findById(req.params.id)
 		.populate({
-			path     : 'reviews',
-			populate : {
-				path : 'author'
+			path: 'reviews',
+			populate: {
+				path: 'author'
 			}
 		})
 		.populate('author');
@@ -60,12 +60,10 @@ module.exports.updateCampground = async (req, res) => {
 			//don't try to remove seeded images from cloudinary if they were seeded
 			//from unsplash API
 			if (!filename.startsWith('SEEDED-IMG')) {
-				console.log(filename);
 				await cloudinary.uploader.destroy(filename);
 			}
 		}
 		await campground.updateOne({ $pull: { images: { filename: { $in: req.body.deleteImages } } } });
-		console.log(campground);
 	}
 	req.flash('success', 'Successfully updated Campground!');
 	res.redirect(`/campgrounds/${campground._id}`);

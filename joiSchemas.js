@@ -1,8 +1,33 @@
-const Joi = require('joi');
+const BaseJoi = require('joi');
+const sanitizeHtml = require('sanitize-html');
+
+const extension = (joi) => ({
+	type: 'string',
+	base: joi.string(),
+	messages: {
+		'string.escapeHTML': '{{#label}} must not include HTML!'
+	},
+	rules: {
+		escapeHTML: {
+			validate(value, helpers) {
+				const clean = sanitizeHtml(value, {
+					allowedTags: [],
+					allowedAttributes: {},
+				});
+				if (clean !== value) {
+					return helpers.error('string.escapeHTML', {value});
+				}
+				return clean;
+			}
+		}
+	}
+});
+
+const Joi = BaseJoi.extend(extension);
 
 module.exports.joiCampgroundSchema = Joi.object({
 	campground   : Joi.object({
-		title       : Joi.string().required().min(5).max(50).pattern(new RegExp("^[^\\W_]+[\\s\\w'\\\\/]*$")),
+		title       : Joi.string().required().min(5).max(50).pattern(new RegExp("^[^\\W_]+[\\s\\w'\\\\/]*$")).escapeHTML(),
 
 		//image       : Joi.string().required(),
 
@@ -12,9 +37,11 @@ module.exports.joiCampgroundSchema = Joi.object({
 			.required()
 			.pattern(new RegExp('^[\\s\\w!@#$%^&*(),.?\'"{}\\[\\];:\\\\/<>|+-=`~]*$'))
 			.min(10)
-			.max(300),
+			.max(300)
+			.escapeHTML(),
+			
 
-		location    : Joi.string().required().min(5).max(50).pattern(new RegExp("^[^\\W_]+[\\s\\w,'\\\\/]*$"))
+		location    : Joi.string().required().min(5).max(50).pattern(new RegExp("^[^\\W_]+[\\s\\w,'\\\\/]*$")).escapeHTML()
 	}).required(),
 	deleteImages : Joi.array()
 });
@@ -27,5 +54,6 @@ module.exports.joiReviewSchema = Joi.object({
 			.pattern(new RegExp('^[\\s\\w!@#$%^&*(),.?\'"{}\\[\\];:\\\\/<>|+-=`~]*$'))
 			.min(10)
 			.max(500)
+			.escapeHTML()
 	}).required()
 });

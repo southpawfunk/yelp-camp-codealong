@@ -13,6 +13,9 @@ const methodOverride = require('method-override');
 const passport = require('passport');
 const LocalStrategy = require('passport-local');
 const User = require('./models/user');
+const helmet = require("helmet");
+
+const mongoSanitize = require('express-mongo-sanitize');
 
 const userRoutes = require('./routes/users');
 const campgroundRoutes = require('./routes/campgrounds');
@@ -22,9 +25,9 @@ mongoose.connect(
 	'mongodb://localhost:27017/yelp-camp',
 	{
 		/* THESE OPTIONS ARE TRUE BY DEFAULT IN MONGOOSE 6+
-    useNewUrlParser: true,
-    useCreateIndex: true,
-    useUnifiedTopology: true */
+	useNewUrlParser: true,
+	useCreateIndex: true,
+	useUnifiedTopology: true */
 	}
 );
 
@@ -45,19 +48,53 @@ app.use(express.urlencoded({ extended: true }));
 //the name passed is the name needed in the query string to set as different request
 app.use(methodOverride('_method'));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(mongoSanitize());
 
 const sessionConfig = {
-	secret            : 'secretsecretivegotasecret',
-	resave            : false,
-	saveUninitialized : true,
-	cookie            : {
-		httpOnly : true,
-		expires  : Date.now() + 1000 * 60 * 60 * 24 * 7,
-		maxAge   : 1000 * 60 * 60 * 24 * 7
+	secret: 'secretsecretivegotasecret',
+	resave: false,
+	saveUninitialized: true,
+	cookie: {
+		name: 'session',
+		httpOnly: true,
+		//only works over https
+		//secure: true,
+		expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
+		maxAge: 1000 * 60 * 60 * 24 * 7
 	}
 };
 app.use(session(sessionConfig));
 app.use(flash());
+
+const connectSrcUrls = [
+	"https://api.mapbox.com/",
+	"https://events.mapbox.com/"
+];
+const scriptSrcUrls = [
+	"https://cdn.jsdelivr.net/",
+	"https://api.mapbox.com/"
+];
+const styleSrcUrls = [
+	"https://cdn.jsdelivr.net/",
+	"https://api.mapbox.com/"
+
+];
+const fontSrcUrls = [];
+
+app.use(helmet.contentSecurityPolicy({
+	directives: {
+		defaultSrc: [],
+		connectSrc: ["'self'", ...connectSrcUrls],
+		scriptSrc: ["'unsafe-inline'", "'self'", ...scriptSrcUrls],
+		styleSrc: ["'self'", "'unsafe-inline'", ...styleSrcUrls],
+		workerSrc: ["'self'", "blob:"],
+		objectSrc: [],
+		imgSrc: [
+			"'self'", "blob:", "data:", `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/`, "https://images.unsplash.com"
+		],
+		fontSrc: ["'self'", ...fontSrcUrls]
+	}
+}));
 
 app.use(passport.initialize());
 //app.use(session()) must come before passport.session()
@@ -79,6 +116,7 @@ app.use((req, res, next) => {
 app.use('/', userRoutes);
 app.use('/campgrounds/:id/reviews/', reviewRoutes);
 app.use('/campgrounds', campgroundRoutes);
+
 
 app.get('/', (req, res) => {
 	res.render('home');
