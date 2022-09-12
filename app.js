@@ -51,11 +51,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(mongoSanitize());
 
 const sessionConfig = {
+	name: 'session',
 	secret: 'secretsecretivegotasecret',
 	resave: false,
 	saveUninitialized: true,
 	cookie: {
-		name: 'session',
 		httpOnly: true,
 		//only works over https
 		//secure: true,

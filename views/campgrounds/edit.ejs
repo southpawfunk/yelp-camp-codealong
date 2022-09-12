@@ -44,11 +44,10 @@
             <div class="mb-3">
                 <label class="form-label">Add Image(s)</label>
                 <div class="form-file">
-                    <input class="form-control" type="file" id="image" name="image" multiple
-                        onchange="previewMultiple(event)">
+                    <input class="form-control" type="file" id="image" name="image" multiple>
                     <label for="image" class="form-label custom-file-label" id="previewLabel"></label>
                 </div>
-                <div id="previewImg"></div>
+                <div id="previewImg" class="row"></div>
             </div>
             <div class="mb-3">
                 <div class="row">
@@ -77,3 +76,5 @@
         <a href="/campgrounds/<%= campground._id%>">Back to Campground</a>
     </div>
 </div>
+
+<script src="/javascripts/imgPreview.js"></script>
